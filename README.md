@@ -22,8 +22,11 @@ with an OpenRouter-powered multilingual (Telugu/Hindi/English) AI assistant.
 
 2. **Get an OpenRouter API key.**
    Sign up at [openrouter.ai](https://openrouter.ai/keys) and create a key.
-   Free models (like the default `meta-llama/llama-3.3-70b-instruct:free`)
-   need no billing setup, though they're rate-limited.
+   This project defaults to `openai/gpt-4o-mini`, which is paid but cheap
+   (~$0.15 per 1M input tokens) — add a few dollars of credit at
+   [openrouter.ai/credits](https://openrouter.ai/credits). If you'd rather
+   not spend anything, swap `OPENROUTER_MODEL` in `.env` for a free model
+   like `meta-llama/llama-3.3-70b-instruct:free`.
 
 3. **Configure environment variables.**
    ```
