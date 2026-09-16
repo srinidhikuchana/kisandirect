@@ -1,0 +1,63 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AgriNexus — Kisan Direct</title><script src="https://cdn.tailwindcss.com"></script></head>
+<body class="bg-emerald-50 text-slate-800"><header class="bg-emerald-800 text-white"><div class="max-w-6xl mx-auto p-6"><h1 class="text-3xl font-bold">🌾 AgriNexus</h1><p>Kisan-Direct • Predict demand → Match supply → Aggregate orders → Optimize delivery</p></div></header>
+<main class="max-w-6xl mx-auto p-6 grid lg:grid-cols-2 gap-6">
+<section class="bg-white p-6 rounded-2xl shadow"><h2 class="text-xl font-bold mb-4">Farmer Produce Listing</h2><div class="grid gap-3"><input id="crop" class="border p-3 rounded" value="Tomato" placeholder="Crop"><input id="qty" type="number" class="border p-3 rounded" value="400" placeholder="Quantity kg"><input id="price" type="number" class="border p-3 rounded" value="28" placeholder="Asking price ₹/kg">
+<select id="lang" class="border p-3 rounded"><option value="en">English</option><option value="hi">Hindi</option><option value="te">Telugu</option></select>
+<button onclick="analyze()" class="bg-emerald-700 text-white p-3 rounded-xl font-semibold">Run AgriNexus Intelligence</button></div><p class="text-xs mt-3 text-slate-500">Backend now reads/writes MongoDB. Buyers seeded automatically on first run.</p></section>
+
+<section id="summary" class="bg-white p-6 rounded-2xl shadow"><h2 class="text-xl font-bold">AI Market Intelligence</h2><p class="mt-3 text-slate-500">Submit a listing to see recommendations.</p></section>
+
+<section class="lg:col-span-2 bg-white p-6 rounded-2xl shadow"><h2 class="text-xl font-bold mb-3">Matched Buyers</h2><div id="matches" class="grid md:grid-cols-3 gap-3"></div></section>
+
+<section class="lg:col-span-2 bg-slate-900 text-white p-6 rounded-2xl"><h2 class="text-xl font-bold">Why this matters</h2><div id="impact" class="mt-3">Direct matching + order aggregation can improve price transparency and reduce unnecessary supply-chain steps.</div></section>
+
+<section class="lg:col-span-2 bg-white p-6 rounded-2xl shadow"><h2 class="text-xl font-bold mb-3">🗣️ AI Assistant (Telugu / Hindi / English)</h2>
+<div id="chatlog" class="border rounded-xl p-4 h-56 overflow-y-auto bg-slate-50 mb-3 text-sm"></div>
+<div class="flex gap-2"><input id="chatinput" class="border p-3 rounded flex-1" placeholder="Ask about prices, demand, delivery..."><button onclick="sendChat()" class="bg-emerald-700 text-white px-4 rounded-xl font-semibold">Send</button></div>
+</section>
+</main>
+<script>
+const API = 'http://localhost:8000';
+let lastAnalysis = null;
+
+async function analyze(){
+  try{
+    const r = await fetch(API+'/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({crop:crop.value,quantity:+qty.value,asking_price:+price.value,lat:17.54,lng:78.49,days_to_harvest:2})});
+    const d = await r.json();
+    lastAnalysis = d;
+    summary.innerHTML = `<h2 class="text-xl font-bold">AI Market Intelligence</h2><div class="grid grid-cols-2 gap-3 mt-4"><div class="bg-emerald-50 p-3 rounded"><b>Demand</b><br>${d.demand}</div><div class="bg-emerald-50 p-3 rounded"><b>Suggested Price</b><br>₹${d.suggested_price}/kg</div><div class="bg-emerald-50 p-3 rounded"><b>Matched</b><br>${d.matched_quantity} kg</div><div class="bg-emerald-50 p-3 rounded"><b>Revenue</b><br>₹${d.estimated_revenue}</div></div><p class="mt-4" id="explanation">${d.explanation}</p>`;
+    matches.innerHTML = d.matches.map(m=>`<div class="border rounded-xl p-4"><b>${m.buyer}</b><p>${m.quantity} kg @ ₹${m.price}/kg</p><p>${m.distance_km} km away</p></div>`).join('') || '<p>No buyers found for this crop yet — add some via POST /buyers.</p>';
+    impact.innerHTML = `Traditional-chain demo consumer estimate: <b>₹${d.traditional_estimated_consumer_price}/kg</b> → AgriNexus demo estimate: <b>₹${d.agrinexus_estimated_consumer_price}/kg</b><br>Illustrative buyer saving: <b>${d.buyer_saving_pct}%</b>.`;
+
+    // Get AI-generated explanation in the selected language
+    const lang = document.getElementById('lang').value;
+    const er = await fetch(API+'/assistant/explain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({crop:crop.value, analysis:d, language:lang})});
+    const ed = await er.json();
+    document.getElementById('explanation').innerText = ed.explanation;
+  }catch(e){
+    summary.innerHTML = '<b>Backend not running.</b><p>Start FastAPI on port 8000, then retry.</p>';
+  }
+}
+
+async function sendChat(){
+  const input = document.getElementById('chatinput');
+  const text = input.value.trim();
+  if(!text) return;
+  const log = document.getElementById('chatlog');
+  log.innerHTML += `<div class="mb-2"><b>You:</b> ${text}</div>`;
+  input.value = '';
+  log.scrollTop = log.scrollHeight;
+  const lang = document.getElementById('lang').value;
+  try{
+    const r = await fetch(API+'/assistant/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'user',content:text}], language:lang})});
+    const d = await r.json();
+    log.innerHTML += `<div class="mb-2 text-emerald-800"><b>AgriNexus AI:</b> ${d.reply}</div>`;
+  }catch(e){
+    log.innerHTML += `<div class="mb-2 text-red-600"><b>Error:</b> could not reach assistant.</div>`;
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
+document.getElementById('chatinput').addEventListener('keydown', e => { if(e.key==='Enter') sendChat(); });
+</script>
+</body></html>
