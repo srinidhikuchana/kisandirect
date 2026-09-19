@@ -1,0 +1,11 @@
+# Top-level versions used for verification on Python 3.12 (not a full transitive lock).
+fastapi==0.141.1
+uvicorn==0.53.0
+pymongo==4.18.1
+python-dotenv==1.2.3
+PyJWT==2.14.0
+httpx==0.28.1
+numpy==2.3.5
+scikit-learn==1.8.0
+ortools==9.15.6755
+pytest==9.1.1
